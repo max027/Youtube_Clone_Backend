@@ -7,7 +7,7 @@ const registerUser=asyncHandler(async (req,res)=>{
    if ([fullname,username,email,password].some((field)=>field?.trim()==="")) {
     throw new ApiError(400,"All fields are required") 
    } 
-   const existed_user=User.findOne({
+   const existed_user=await User.findOne({
     $or:[{username},{email}]
    })
    if (existed_user) {
