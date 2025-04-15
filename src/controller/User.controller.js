@@ -14,15 +14,17 @@ const registerUser=asyncHandler(async (req,res)=>{
    if (existed_user) {
     throw new ApiError(409,"User with email or username exist") 
    }
+   /**  
    const avatar_local_path=req.files?.avatar[0]?.path;
    const cover_image_path=req.files?.coverImage[0]?.path;
    if (!avatar_local_path) {
         throw new ApiError(400,"Avatar is required"); 
    }
+  */
 
    const user=await User.create({
     fullname,
-    coverImage,
+    //coverImage,
     email,
     password,
     username:username.toLowerCase()
