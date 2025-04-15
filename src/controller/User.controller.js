@@ -3,6 +3,20 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { User } from "../models/user.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+const generateAccessandRefreshToken=async(userId)=>{
+  try {
+   const user=await User.findById(userId); 
+   const access_token=user.generateAccessToken();
+   const refresh_token=user.generateRefreshToken();
+   user.refereshToken=refresh_token;
+   await user.save({validateBeforeSave:false});
+
+    return {access_token,refresh_token};
+  } catch (error) {
+    throw new ApiError(500,"Something went wrong while generating access or refresh token");
+  }
+}
+
 const registerUser=asyncHandler(async (req,res)=>{
    const {fullname,username,email,password} =req.body
    if ([fullname,username,email,password].some((field)=>field?.trim()==="")) {
@@ -46,4 +60,39 @@ const registerUser=asyncHandler(async (req,res)=>{
     return res.status(201).json(new ApiResponse(200,created_user,"User Registered sucessfully"))
 }) 
 
-export {registerUser}
+const loginUsers=asyncHandler(async (req,res)=>{
+  //req-body data
+  const {email,username,password}=req.body;
+  if (!username || !email) {
+   throw new ApiError(400,"Username or Password is required"); 
+  }
+  const user=await User.findOne({$or:[{username},{email}]});
+
+  if (!user) {
+   throw new ApiError(404,"User does not exist"); 
+  }
+
+ const valid_password= await user.isPasswordCorrect(password);
+ if (!valid_password) {
+   throw new ApiError(401,"Password incorrect"); 
+ }
+
+ const {access_token,refresh_token}=await generateAccessandRefreshToken(user._id);
+
+ const loggedIn=await User.findById(user._id).select("-password -refereshToken");
+ 
+ const options={
+  httpOnly:true,
+  secure:true,
+ }
+
+ return res
+ .status(200)
+ .cookie("accessToken",access_token,options)
+ .cookie("refreshToken",refresh_token,options)
+ .json(new ApiResponse(200,{
+  user:loggedIn,access_token,refresh_token
+ },"User loggedIn successfully"));
+
+})
+export {registerUser,loginUsers}
