@@ -2,6 +2,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { User } from "../models/user.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import jwt from "jsonwebtoken";
 
 const generateAccessandRefreshToken=async(userId)=>{
   try {
@@ -63,7 +64,7 @@ const registerUser=asyncHandler(async (req,res)=>{
 const loginUsers=asyncHandler(async (req,res)=>{
   //req-body data
   const {email,username,password}=req.body;
-  if (!username || !email) {
+  if (!(username || email)) {
    throw new ApiError(400,"Username or Password is required"); 
   }
   const user=await User.findOne({$or:[{username},{email}]});
@@ -95,4 +96,33 @@ const loginUsers=asyncHandler(async (req,res)=>{
  },"User loggedIn successfully"));
 
 })
-export {registerUser,loginUsers}
+
+const logoutUser = asyncHandler(async (req, res) => {
+  await User.findByIdAndUpdate(req.user._id, {
+    $set: {
+      refereshToken: undefined
+    },
+  },
+    {
+      new: true
+    }
+  )
+ const options={
+  httpOnly:true,
+  secure:true,
+ }
+
+ return res.status(200).clearCookie("accessToken",options).clearCookie("refreshToken",options).json(new ApiResponse(200,{},"User logout succesfully"))
+
+})
+
+const refreshAccessToken=asyncHandler(async (req,res)=>{
+  const incomming_refresh_token=req.cookies.refereshToken || req.body.refereshToken
+  if (!incomming_refresh_token) {
+   throw new ApiError(401,"Unauthorized request"); 
+  }
+  
+  const decoded_token=jwt.verify(incomming_refresh_token,process.env.REFRESH_TOKEN_SECRET);
+  
+})
+export { registerUser, loginUsers, logoutUser }
