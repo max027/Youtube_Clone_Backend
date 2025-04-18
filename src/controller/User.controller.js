@@ -9,7 +9,7 @@ const generateAccessandRefreshToken=async(userId)=>{
    const user=await User.findById(userId); 
    const access_token=user.generateAccessToken();
    const refresh_token=user.generateRefreshToken();
-   user.refereshToken=refresh_token;
+   user.refreshToken=refresh_token;
    await user.save({validateBeforeSave:false});
 
     return {access_token,refresh_token};
@@ -49,9 +49,8 @@ const registerUser=asyncHandler(async (req,res)=>{
     password,
     username:username.toLowerCase()
    })
-    console.log(username);
     const created_user=await User.findById(user._id).select(
-     "-password -refereshToken"
+     "-password -refreshToken"
     );
 
     if (!created_user) {
@@ -80,7 +79,7 @@ const loginUsers=asyncHandler(async (req,res)=>{
 
  const {access_token,refresh_token}=await generateAccessandRefreshToken(user._id);
 
- const loggedIn=await User.findById(user._id).select("-password -refereshToken");
+ const loggedIn=await User.findById(user._id).select("-password -refreshToken");
  
  const options={
   httpOnly:true,
@@ -100,7 +99,7 @@ const loginUsers=asyncHandler(async (req,res)=>{
 const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(req.user._id, {
     $set: {
-      refereshToken: undefined
+      refreshToken: undefined
     },
   },
     {
@@ -117,7 +116,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 })
 
 const refreshAccessToken=asyncHandler(async (req,res)=>{
-  const incomming_refresh_token=req.cookies.refreshToken || req.body.refereshToken
+  const incomming_refresh_token=req.cookies.refreshToken || req.body.refreshToken
   if (!incomming_refresh_token) {
    throw new ApiError(401,"Unauthorized request"); 
   }
@@ -128,9 +127,8 @@ const refreshAccessToken=asyncHandler(async (req,res)=>{
     if (!user) {
      throw new ApiError(401,"Invalid Refresh Token"); 
     }
-    
-    console.log(user.refereshToken);
-    if (incomming_refresh_token!==user?.refereshToken) {
+    console.log(user.refreshToken);
+    if (incomming_refresh_token!==user?.refreshToken) {
      throw new ApiError(401,"Refresh Token if Expired or Used"); 
     }
     const options={
